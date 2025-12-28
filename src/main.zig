@@ -4,85 +4,64 @@ const Bullet = @import("entities.zig").Bullet;
 const Invader = @import("entities.zig").Invader;
 const EnemyBullet = @import("entities.zig").EnemyBullet;
 const Shield = @import("entities.zig").Shield;
+const config_module = @import("config.zig");
+const GameConfig = config_module.GameConfig;
 
 pub fn main() !void {
-    const screenWidth = 800;
-    const screenHeight = 600;
-    const playerWidth = 50.0;
-    const playerHeight = 30.0;
-    const maxBullets = 10;
-    const bulletWidth = 4.0;
-    const bulletHeight = 10.0;
-    const invaderRows = 5;
-    const invaderCols = 11;
-    const invaderWidth = 40.0;
-    const invaderHeight = 30.0;
-    const invaderStartX = 100.0;
-    const invaderStartY = 50.0;
-    const invaderSpacingX = 60.0;
-    const invaderSpacingY = 40.0;
-    const invaderSpeed = 10.0;
-    const invaderMoverDelay = 30;
-    const invaderDropDistance = 20.0;
-    const enemyShootDelay = 60;
-    const enemyShootChance = 25;
+    const config = config_module.defaultConfig;
     const shieldCount = 4;
-    const shieldWidth = 80.0;
-    const shieldHeight = 60.0;
-    const shieldStartX = 150.0;
-    const shieldStartY = 450.0;
-    const shieldSpacing = 150;
+    const shieldSpacing = 150.0;
 
-    var game_over: bool = false;
+    var game_over = false;
+    var game_own = false;
     var invaderDirection: f32 = 1.0;
     var move_timer: i32 = 0;
     var score: i32 = 0;
-    const maxEnemyBullets = 20;
     var enemy_shoot_timer: i32 = 0;
 
     var player = Player.init(
-        @as(f32, @floatFromInt(screenWidth)) / 2 - playerWidth / 2,
-        @as(f32, @floatFromInt(screenHeight)) - 60,
-        playerWidth,
-        playerHeight,
+        @as(f32, @floatFromInt(config.screenWidth)) / 2 - config.playerWidth / 2,
+        @as(f32, @floatFromInt(config.screenHeight)) - config.playerStartY,
+        config.playerWidth,
+        config.playerHeight,
     );
 
     var shields: [shieldCount]Shield = undefined;
     for (&shields, 0..) |*shield, index| {
-        const x = shieldStartX + @as(f32, @floatFromInt(index)) * shieldSpacing;
+        const x = config.shieldStartX + @as(f32, @floatFromInt(index)) * shieldSpacing;
         shield.* = Shield.init(
             x,
-            shieldStartY,
-            shieldWidth,
-            shieldHeight,
+            config.shieldStartY,
+            config.shieldWidth,
+            config.shieldHeight,
         );
     }
 
-    var bullets: [maxBullets]Bullet = undefined;
+    var bullets: [config.maxBullets]Bullet = undefined;
     for (&bullets) |*bullet| {
         bullet.* = Bullet.init(
             0,
             0,
-            bulletWidth,
-            bulletHeight,
+            config.bulletWidth,
+            config.bulletHeight,
         );
     }
 
-    var enemy_bullets: [maxEnemyBullets]EnemyBullet = undefined;
+    var enemy_bullets: [config.maxEnemyBullets]EnemyBullet = undefined;
     for (&enemy_bullets) |*bullet| {
-        bullet.* = EnemyBullet.init(0, 0, bulletWidth, bulletHeight);
+        bullet.* = EnemyBullet.init(0, 0, config.bulletWidth, config.bulletHeight);
     }
 
-    var invaders: [invaderRows][invaderCols]Invader = undefined;
+    var invaders: [config.invaderRows][config.invaderCols]Invader = undefined;
     for (&invaders, 0..) |*row, i| {
         for (row, 0..) |*invader, j| {
-            const x = invaderStartX + @as(f32, @floatFromInt(j)) * invaderSpacingX;
-            const y = invaderStartY + @as(f32, @floatFromInt(i)) * invaderSpacingY;
+            const x = config.invaderStartX + @as(f32, @floatFromInt(j)) * config.invaderSpacingX;
+            const y = config.invaderStartY + @as(f32, @floatFromInt(i)) * config.invaderSpacingY;
             invader.* = Invader.init(
                 x,
                 y,
-                invaderWidth,
-                invaderHeight,
+                config.invaderWidth,
+                config.invaderHeight,
             );
         }
     }
@@ -90,8 +69,9 @@ pub fn main() !void {
     const fontSize: i32 = 40;
     const text = "Zig Invaders";
     const game_over_text = "Press Enter to Play Again";
+    const game_own_text = "You Win!";
 
-    rl.initWindow(screenWidth, screenHeight, "Zig Invaders");
+    rl.initWindow(config.screenWidth, config.screenHeight, "Zig Invaders");
     defer rl.closeWindow();
 
     rl.setTargetFPS(60);
@@ -102,17 +82,19 @@ pub fn main() !void {
 
         rl.clearBackground(rl.Color.black);
 
-        const centerX = screenWidth / 2;
-        const centerY = screenHeight / 2;
+        const centerX = config.screenWidth / 2;
+        const centerY = config.screenHeight / 2;
 
         const textWidth = rl.measureText(text, fontSize);
         const game_over_text_width = rl.measureText(game_over_text, fontSize);
+        const game_own_text_width = rl.measureText(game_own_text, fontSize);
         const textHeight = fontSize;
 
         const x = centerX - @divTrunc(textWidth, 2);
         const y = centerY - @divTrunc(textHeight, 2);
 
         const game_over_x = centerX - @divTrunc(game_over_text_width, 2);
+        const game_own_x = centerX - @divTrunc(game_own_text_width, 2);
 
         if (game_over) {
             rl.drawText("Game Over", x, y, fontSize, rl.Color.green);
@@ -125,7 +107,44 @@ pub fn main() !void {
             );
 
             if (rl.isKeyPressed(rl.KeyboardKey.enter)) {
+                config_module.resetGame(
+                    &player,
+                    &bullets,
+                    &enemy_bullets,
+                    &shields,
+                    &invaders,
+                    &invaderDirection,
+                    &score,
+                    config,
+                    shieldSpacing,
+                );
                 game_over = false;
+            }
+            continue;
+        }
+
+        if (game_own) {
+            rl.drawText(
+                game_own_text,
+                game_own_x,
+                y + fontSize + 10,
+                fontSize,
+                rl.Color.green,
+            );
+
+            if (rl.isKeyPressed(rl.KeyboardKey.enter)) {
+                config_module.resetGame(
+                    &player,
+                    &bullets,
+                    &enemy_bullets,
+                    &shields,
+                    &invaders,
+                    &invaderDirection,
+                    &score,
+                    config,
+                    shieldSpacing,
+                );
+                game_own = false;
             }
             continue;
         }
@@ -173,18 +192,18 @@ pub fn main() !void {
         }
 
         for (&enemy_bullets) |*bullet| {
-            bullet.update(screenHeight);
+            bullet.update(config.screenHeight);
         }
         enemy_shoot_timer += 1;
-        if (enemy_shoot_timer >= enemyShootDelay) {
+        if (enemy_shoot_timer >= config.enemyShootDelay) {
             enemy_shoot_timer = 0;
 
             for (&invaders) |*row| {
                 for (row) |*invader| {
-                    if (invader.alive and rl.getRandomValue(0, 100) < enemyShootChance) {
+                    if (invader.alive and rl.getRandomValue(0, 100) < config.enemyShootChance) {
                         for (&enemy_bullets) |*bullet| {
                             if (bullet.active) continue;
-                            bullet.position_x = invader.position_x + invaderWidth / 2 - bullet.width / 2;
+                            bullet.position_x = invader.position_x + config.invaderWidth / 2 - bullet.width / 2;
                             bullet.position_y = invader.position_y + invader.height;
                             bullet.active = true;
                             break;
@@ -195,7 +214,7 @@ pub fn main() !void {
         }
 
         move_timer += 1;
-        if (move_timer >= invaderMoverDelay) {
+        if (move_timer >= config.invaderMoveDelay) {
             move_timer = 0;
 
             var hit_edge = false;
@@ -203,8 +222,8 @@ pub fn main() !void {
             for (&invaders) |*row| {
                 for (row) |*invader| {
                     if (invader.alive) {
-                        const next_x = invader.position_x + (invaderSpeed * invaderDirection);
-                        if (next_x < 0 or next_x + invaderWidth > @as(f32, @floatFromInt(screenWidth))) {
+                        const next_x = invader.position_x + (config.invaderSpeed * invaderDirection);
+                        if (next_x < 0 or next_x + config.invaderWidth > @as(f32, @floatFromInt(config.screenWidth))) {
                             hit_edge = true;
                             break;
                         }
@@ -219,18 +238,41 @@ pub fn main() !void {
                 invaderDirection *= -1.0;
                 for (&invaders) |*row| {
                     for (row) |*invader| {
-                        invader.update(0, invaderDropDistance);
+                        invader.update(0, config.invaderDropDistance);
                     }
                 }
             } else {
                 for (&invaders) |*row| {
                     for (row) |*invader| {
-                        invader.update(invaderSpeed * invaderDirection, 0);
+                        invader.update(config.invaderSpeed * invaderDirection, 0);
+                    }
+                }
+            }
+
+            for (&invaders) |*row| {
+                for (row) |*invader| {
+                    if (invader.alive) {
+                        if (invader.getRect().intersects(player.getRect())) {
+                            game_over = true;
+                        }
                     }
                 }
             }
         }
 
+        var all_invaders_dead = true;
+        outer: for (&invaders) |*row| {
+            for (row) |*invader| {
+                if (invader.alive) {
+                    all_invaders_dead = false;
+                    break :outer;
+                }
+            }
+        }
+
+        if (all_invaders_dead) {
+            game_own = true;
+        }
         // draw
 
         for (&shields) |*shield| {
@@ -270,7 +312,7 @@ pub fn main() !void {
 
         const score_text = rl.textFormat("Score: %d", .{score});
 
-        rl.drawText(score_text, 20, screenHeight - 20, fontSize / 2, rl.Color.white);
+        rl.drawText(score_text, 20, config.screenHeight - 20, fontSize / 2, rl.Color.white);
 
         if (!game_over) {
             rl.drawText("Zig Invaders", x, y, fontSize, rl.Color.green);
