@@ -3,6 +3,7 @@ const Player = @import("entities.zig").Player;
 const Bullet = @import("entities.zig").Bullet;
 const Invader = @import("entities.zig").Invader;
 const EnemyBullet = @import("entities.zig").EnemyBullet;
+const Shield = @import("entities.zig").Shield;
 
 pub fn main() !void {
     const screenWidth = 800;
@@ -25,6 +26,12 @@ pub fn main() !void {
     const invaderDropDistance = 20.0;
     const enemyShootDelay = 60;
     const enemyShootChance = 25;
+    const shieldCount = 4;
+    const shieldWidth = 80.0;
+    const shieldHeight = 60.0;
+    const shieldStartX = 150.0;
+    const shieldStartY = 450.0;
+    const shieldSpacing = 150;
 
     var game_over: bool = false;
     var invaderDirection: f32 = 1.0;
@@ -39,6 +46,17 @@ pub fn main() !void {
         playerWidth,
         playerHeight,
     );
+
+    var shields: [shieldCount]Shield = undefined;
+    for (&shields, 0..) |*shield, index| {
+        const x = shieldStartX + @as(f32, @floatFromInt(index)) * shieldSpacing;
+        shield.* = Shield.init(
+            x,
+            shieldStartY,
+            shieldWidth,
+            shieldHeight,
+        );
+    }
 
     var bullets: [maxBullets]Bullet = undefined;
     for (&bullets) |*bullet| {
@@ -142,6 +160,16 @@ pub fn main() !void {
                     }
                 }
             }
+
+            for (&shields) |*shield| {
+                if (shield.health > 0) {
+                    if (bullet.getRect().intersects(shield.getRect())) {
+                        bullet.active = false;
+                        shield.health -= 1;
+                        break;
+                    }
+                }
+            }
         }
 
         for (&enemy_bullets) |*bullet| {
@@ -202,7 +230,13 @@ pub fn main() !void {
                 }
             }
         }
+
         // draw
+
+        for (&shields) |*shield| {
+            shield.draw();
+        }
+
         player.draw();
         for (&bullets) |*bullet| {
             bullet.draw();
@@ -220,6 +254,16 @@ pub fn main() !void {
                 if (bullet.getRect().intersects(player.getRect())) {
                     bullet.active = false;
                     game_over = true;
+                }
+
+                for (&shields) |*shield| {
+                    if (shield.health > 0) {
+                        if (bullet.getRect().intersects(shield.getRect())) {
+                            bullet.active = false;
+                            shield.health -= 1;
+                            break;
+                        }
+                    }
                 }
             }
         }
