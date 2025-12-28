@@ -1,4 +1,5 @@
 const rl = @import("raylib");
+const GameConfig = @import("config.zig").GameConfig;
 
 pub const Player = struct {
     position_x: f32,
@@ -15,6 +16,15 @@ pub const Player = struct {
             .height = height,
             .speed = 5.0,
         };
+    }
+
+    pub fn initFromConfig(config: GameConfig) @This() {
+        return Player.init(
+            @as(f32, @floatFromInt(config.screenWidth)) / 2.0 - config.playerWidth / 2.0,
+            @as(f32, @floatFromInt(config.screenHeight)) - config.playerStartY,
+            config.playerWidth,
+            config.playerHeight,
+        );
     }
 
     pub fn update(self: *@This()) void {

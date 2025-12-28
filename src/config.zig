@@ -4,6 +4,50 @@ const Invader = @import("entities.zig").Invader;
 const EnemyBullet = @import("entities.zig").EnemyBullet;
 const Shield = @import("entities.zig").Shield;
 
+pub fn initShields(shields: []Shield, config: GameConfig, shieldSpacing: f32) void {
+    for (shields, 0..) |*shield, index| {
+        const x = config.shieldStartX + @as(f32, @floatFromInt(index)) * shieldSpacing;
+        shield.* = Shield.init(
+            x,
+            config.shieldStartY,
+            config.shieldWidth,
+            config.shieldHeight,
+        );
+    }
+}
+
+pub fn initBullets(bullets: []Bullet, config: GameConfig) void {
+    for (bullets) |*bullet| {
+        bullet.* = Bullet.init(
+            0,
+            0,
+            config.bulletWidth,
+            config.bulletHeight,
+        );
+    }
+}
+
+pub fn initEnemyBullets(enemy_bullets: []EnemyBullet, config: GameConfig) void {
+    for (enemy_bullets) |*bullet| {
+        bullet.* = EnemyBullet.init(0, 0, config.bulletWidth, config.bulletHeight);
+    }
+}
+
+pub fn initInvaders(invaders: anytype, config: GameConfig) void {
+    for (invaders, 0..) |*row, i| {
+        for (row, 0..) |*invader, j| {
+            const x = config.invaderStartX + @as(f32, @floatFromInt(j)) * config.invaderSpacingX;
+            const y = config.invaderStartY + @as(f32, @floatFromInt(i)) * config.invaderSpacingY;
+            invader.* = Invader.init(
+                x,
+                y,
+                config.invaderWidth,
+                config.invaderHeight,
+            );
+        }
+    }
+}
+
 pub const GameConfig = struct {
     screenWidth: i32,
     screenHeight: i32,
@@ -84,43 +128,12 @@ pub fn resetGame(
     shieldSpacing: f32,
 ) void {
     score.* = 0;
-    player.* = Player.init(
-        @as(f32, @floatFromInt(config.screenWidth)) / 2 - config.playerWidth / 2,
-        @as(f32, @floatFromInt(config.screenHeight)) - config.playerStartY,
-        config.playerWidth,
-        config.playerHeight,
-    );
+    player.* = Player.initFromConfig(config);
 
-    for (bullets) |*bullet| {
-        bullet.active = false;
-    }
-
-    for (enemyBullets) |*bullet| {
-        bullet.active = false;
-    }
-
-    for (shields, 0..) |*shield, i| {
-        const x = config.shieldStartX + @as(f32, @floatFromInt(i)) * shieldSpacing;
-        shield.* = Shield.init(
-            x,
-            config.shieldStartY,
-            config.shieldWidth,
-            config.shieldHeight,
-        );
-    }
-
-    for (invaders, 0..) |*row, i| {
-        for (row, 0..) |*invader, j| {
-            const x = config.invaderStartX + @as(f32, @floatFromInt(j)) * config.invaderSpacingX;
-            const y = config.invaderStartY + @as(f32, @floatFromInt(i)) * config.invaderSpacingY;
-            invader.* = Invader.init(
-                x,
-                y,
-                config.invaderWidth,
-                config.invaderHeight,
-            );
-        }
-    }
+    initBullets(bullets, config);
+    initEnemyBullets(enemyBullets, config);
+    initShields(shields, config, shieldSpacing);
+    initInvaders(invaders, config);
 
     invader_direction.* = 1.0;
 }
