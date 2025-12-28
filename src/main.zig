@@ -26,6 +26,7 @@ pub fn main() !void {
     const enemyShootDelay = 60;
     const enemyShootChance = 25;
 
+    var game_over: bool = false;
     var invaderDirection: f32 = 1.0;
     var move_timer: i32 = 0;
     var score: i32 = 0;
@@ -70,6 +71,7 @@ pub fn main() !void {
 
     const fontSize: i32 = 40;
     const text = "Zig Invaders";
+    const game_over_text = "Press Enter to Play Again";
 
     rl.initWindow(screenWidth, screenHeight, "Zig Invaders");
     defer rl.closeWindow();
@@ -86,10 +88,29 @@ pub fn main() !void {
         const centerY = screenHeight / 2;
 
         const textWidth = rl.measureText(text, fontSize);
+        const game_over_text_width = rl.measureText(game_over_text, fontSize);
         const textHeight = fontSize;
 
         const x = centerX - @divTrunc(textWidth, 2);
         const y = centerY - @divTrunc(textHeight, 2);
+
+        const game_over_x = centerX - @divTrunc(game_over_text_width, 2);
+
+        if (game_over) {
+            rl.drawText("Game Over", x, y, fontSize, rl.Color.green);
+            rl.drawText(
+                "Press Enter to Play Again",
+                game_over_x,
+                y + fontSize + 10,
+                fontSize,
+                rl.Color.green,
+            );
+
+            if (rl.isKeyPressed(rl.KeyboardKey.enter)) {
+                game_over = false;
+            }
+            continue;
+        }
 
         // update
         player.update();
@@ -195,11 +216,20 @@ pub fn main() !void {
 
         for (&enemy_bullets) |*bullet| {
             bullet.draw();
+            if (bullet.active) {
+                if (bullet.getRect().intersects(player.getRect())) {
+                    bullet.active = false;
+                    game_over = true;
+                }
+            }
         }
 
         const score_text = rl.textFormat("Score: %d", .{score});
 
         rl.drawText(score_text, 20, screenHeight - 20, fontSize / 2, rl.Color.white);
-        rl.drawText("Zig Invaders", x, y, fontSize, rl.Color.green);
+
+        if (!game_over) {
+            rl.drawText("Zig Invaders", x, y, fontSize, rl.Color.green);
+        }
     }
 }
