@@ -96,6 +96,20 @@ pub fn main() !void {
             bullet.update();
         }
 
+        for (&bullets) |*bullet| {
+            if (!bullet.active) continue;
+            for (&invaders) |*row| {
+                for (row) |*invader| {
+                    if (!invader.alive) continue;
+                    if (bullet.getRect().intersects(invader.getRect())) {
+                        bullet.active = false;
+                        invader.alive = false;
+                        break;
+                    }
+                }
+            }
+        }
+
         move_timer += 1;
         if (move_timer >= invaderMoverDelay) {
             move_timer = 0;

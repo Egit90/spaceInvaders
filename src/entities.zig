@@ -107,6 +107,15 @@ pub const Bullet = struct {
             rl.Color.red,
         );
     }
+
+    pub fn getRect(self: @This()) Rectangle {
+        return .{
+            .x = self.position_x,
+            .y = self.position_y,
+            .width = self.width,
+            .height = self.height,
+        };
+    }
 };
 
 pub const Invader = struct {
@@ -142,5 +151,14 @@ pub const Invader = struct {
     pub fn update(self: *@This(), dx: f32, dy: f32) void {
         self.position_x += dx;
         self.position_y += dy;
+    }
+
+    pub fn getRect(self: @This()) Rectangle {
+        return .{
+            .x = self.position_x,
+            .y = self.position_y,
+            .width = self.width,
+            .height = self.height,
+        };
     }
 };
