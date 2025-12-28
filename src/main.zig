@@ -2,6 +2,7 @@ const rl = @import("raylib");
 const Player = @import("entities.zig").Player;
 const Bullet = @import("entities.zig").Bullet;
 const Invader = @import("entities.zig").Invader;
+const EnemyBullet = @import("entities.zig").EnemyBullet;
 
 pub fn main() !void {
     const screenWidth = 800;
@@ -22,9 +23,14 @@ pub fn main() !void {
     const invaderSpeed = 10.0;
     const invaderMoverDelay = 30;
     const invaderDropDistance = 20.0;
+    const enemyShootDelay = 60;
+    const enemyShootChance = 25;
+
     var invaderDirection: f32 = 1.0;
     var move_timer: i32 = 0;
     var score: i32 = 0;
+    const maxEnemyBullets = 20;
+    var enemy_shoot_timer: i32 = 0;
 
     var player = Player.init(
         @as(f32, @floatFromInt(screenWidth)) / 2 - playerWidth / 2,
@@ -41,6 +47,11 @@ pub fn main() !void {
             bulletWidth,
             bulletHeight,
         );
+    }
+
+    var enemy_bullets: [maxEnemyBullets]EnemyBullet = undefined;
+    for (&enemy_bullets) |*bullet| {
+        bullet.* = EnemyBullet.init(0, 0, bulletWidth, bulletHeight);
     }
 
     var invaders: [invaderRows][invaderCols]Invader = undefined;
@@ -112,6 +123,28 @@ pub fn main() !void {
             }
         }
 
+        for (&enemy_bullets) |*bullet| {
+            bullet.update(screenHeight);
+        }
+        enemy_shoot_timer += 1;
+        if (enemy_shoot_timer >= enemyShootDelay) {
+            enemy_shoot_timer = 0;
+
+            for (&invaders) |*row| {
+                for (row) |*invader| {
+                    if (invader.alive and rl.getRandomValue(0, 100) < enemyShootChance) {
+                        for (&enemy_bullets) |*bullet| {
+                            if (bullet.active) continue;
+                            bullet.position_x = invader.position_x + invaderWidth / 2 - bullet.width / 2;
+                            bullet.position_y = invader.position_y + invader.height;
+                            bullet.active = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         move_timer += 1;
         if (move_timer >= invaderMoverDelay) {
             move_timer = 0;
@@ -158,6 +191,10 @@ pub fn main() !void {
             for (row) |*invader| {
                 invader.draw();
             }
+        }
+
+        for (&enemy_bullets) |*bullet| {
+            bullet.draw();
         }
 
         const score_text = rl.textFormat("Score: %d", .{score});
