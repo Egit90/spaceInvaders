@@ -22,7 +22,7 @@ pub fn main() !void {
     const invaderSpeed = 10.0;
     const invaderMoverDelay = 30;
 
-    const invaderDirection: f32 = 1.0;
+    var invaderDirection: f32 = 1.0;
     var move_timer: i32 = 0;
 
     var player = Player.init(
@@ -100,9 +100,30 @@ pub fn main() !void {
         if (move_timer >= invaderMoverDelay) {
             move_timer = 0;
 
+            var hit_edge = false;
+
             for (&invaders) |*row| {
                 for (row) |*invader| {
-                    invader.update(invaderSpeed * invaderDirection, 0);
+                    if (invader.alive) {
+                        const next_x = invader.position_x + (invaderSpeed * invaderDirection);
+                        if (next_x < 0 or next_x + invaderWidth > @as(f32, @floatFromInt(screenWidth))) {
+                            hit_edge = true;
+                            break;
+                        }
+                    }
+                    if (hit_edge) {
+                        break;
+                    }
+                }
+            }
+
+            if (hit_edge) {
+                invaderDirection *= -1.0;
+            } else {
+                for (&invaders) |*row| {
+                    for (row) |*invader| {
+                        invader.update(invaderSpeed * invaderDirection, 0);
+                    }
                 }
             }
         }
