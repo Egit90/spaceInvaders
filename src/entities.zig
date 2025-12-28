@@ -108,3 +108,39 @@ pub const Bullet = struct {
         );
     }
 };
+
+pub const Invader = struct {
+    position_x: f32,
+    position_y: f32,
+    width: f32,
+    height: f32,
+    speed: f32,
+    alive: bool,
+
+    pub fn init(position_x: f32, position_y: f32, width: f32, height: f32) @This() {
+        return .{
+            .position_x = position_x,
+            .position_y = position_y,
+            .width = width,
+            .height = height,
+            .speed = 5.0,
+            .alive = true,
+        };
+    }
+
+    pub fn draw(self: @This()) void {
+        if (!self.alive) return;
+        rl.drawRectangle(
+            @intFromFloat(self.position_x),
+            @intFromFloat(self.position_y),
+            @intFromFloat(self.width),
+            @intFromFloat(self.height),
+            rl.Color.green,
+        );
+    }
+
+    pub fn update(self: *@This(), dx: f32, dy: f32) void {
+        self.position_x += dx;
+        self.position_y += dy;
+    }
+};

@@ -1,6 +1,7 @@
 const rl = @import("raylib");
 const Player = @import("entities.zig").Player;
 const Bullet = @import("entities.zig").Bullet;
+const Invader = @import("entities.zig").Invader;
 
 pub fn main() !void {
     const screenWidth = 800;
@@ -10,6 +11,19 @@ pub fn main() !void {
     const maxBullets = 10;
     const bulletWidth = 4.0;
     const bulletHeight = 10.0;
+    const invaderRows = 5;
+    const invaderCols = 11;
+    const invaderWidth = 40.0;
+    const invaderHeight = 30.0;
+    const invaderStartX = 100.0;
+    const invaderStartY = 50.0;
+    const invaderSpacingX = 60.0;
+    const invaderSpacingY = 40.0;
+    const invaderSpeed = 10.0;
+    const invaderMoverDelay = 30;
+
+    const invaderDirection: f32 = 1.0;
+    var move_timer: i32 = 0;
 
     var player = Player.init(
         @as(f32, @floatFromInt(screenWidth)) / 2 - playerWidth / 2,
@@ -26,6 +40,20 @@ pub fn main() !void {
             bulletWidth,
             bulletHeight,
         );
+    }
+
+    var invaders: [invaderRows][invaderCols]Invader = undefined;
+    for (&invaders, 0..) |*row, i| {
+        for (row, 0..) |*invader, j| {
+            const x = invaderStartX + @as(f32, @floatFromInt(j)) * invaderSpacingX;
+            const y = invaderStartY + @as(f32, @floatFromInt(i)) * invaderSpacingY;
+            invader.* = Invader.init(
+                x,
+                y,
+                invaderWidth,
+                invaderHeight,
+            );
+        }
     }
 
     const fontSize: i32 = 40;
@@ -68,10 +96,26 @@ pub fn main() !void {
             bullet.update();
         }
 
+        move_timer += 1;
+        if (move_timer >= invaderMoverDelay) {
+            move_timer = 0;
+
+            for (&invaders) |*row| {
+                for (row) |*invader| {
+                    invader.update(invaderSpeed * invaderDirection, 0);
+                }
+            }
+        }
         // draw
         player.draw();
         for (&bullets) |*bullet| {
             bullet.draw();
+        }
+
+        for (&invaders) |*row| {
+            for (row) |*invader| {
+                invader.draw();
+            }
         }
 
         rl.drawText("Zig Invaders", x, y, fontSize, rl.Color.green);
